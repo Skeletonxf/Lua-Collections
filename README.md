@@ -65,13 +65,9 @@ asSet() returns a new list with no duplicate elements, the list could easily sto
 __index this actually isn't a method that does anything, it's just so Lua finds all the methods defined above when you try to call them
 ```
 
-### I just want a stack or a queue
+### I just want a set / stack / queue
 
-ArrayList aliases some methods to meaninful names for queues and stacks, there is a short example in monkeyPatchingTest.lua showing you how you can easily reduce down to a Stack (or Queue) by using ArrayList
-
-### I just want a set
-
-You could look at the example provided in monkeyPatchingTest.lua
+ArrayList aliases some methods to meaninful names for queues and stacks, there is a short example in monkeyPatchingTest.lua showing you how you can easily monkey patch your way to a Set.
 
 ### How does ArrayList work?
 

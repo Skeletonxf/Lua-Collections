@@ -18,7 +18,16 @@ local arrayList = {
     Because this list tracks its start and end points,
     using # for length may be wrong, and the list can
     support nil values
-  ]]
+    
+    _FAIL_FAST value: 
+    When true some behaviour will throw errors instead of trying
+    to gracefully carry on. When this is false you may encounter
+    silent errors, when true you need to be able to catch the
+    errors to avoid crashing the program. To catch errors rather
+    than ignore them the code will also have to perform additional
+    checks in some functions which will decrease efficiency.
+  ]],
+  _FAIL_FAST = false
 }
 
 -- define the ArrayList metamethods
@@ -26,7 +35,68 @@ local arrayList = {
 -- a common set of functions for each table using
 -- this table as a metatable
 local ArrayList = {}
+-- make lua find the methods when looking at this metatable
 ArrayList.__index = ArrayList
+
+-- Returns the meta table used for providing all methods of a list.
+-- modifying or adding to these methods will affect the behaviour
+-- of all lists backed by this meta table, so know what you're doing
+-- if you use this
+arrayList.class = function() return ArrayList end
+-- alias to support older code
+arrayList.getClassMethods = arrayList.class
+
+-- lets you simply use 'arrayList' to create a new arrayList instead
+arrayList.__call = arrayList.new
+
+-- create a new array list, taking nothing, a string, number or table
+-- returns the/a table backed by the ArrayList metatable
+-- if a table is provided it needs to have no holes and start
+-- at one, or you need to manually set .__start and .__length appropriately
+-- after calling this method, or FAIL_FAST behaviour will throw an error
+function arrayList.new(list)
+    -- make the table if not provided
+    local list = list or {}
+    local typeGiven = type(list)
+    if typeGiven ~= "table" then
+        if (type(list) == "number") or (type(list) == "string") then
+            -- create a list with the first value as this
+            list = {list}
+        else
+            error("Attempt to create new array list from unsupported type", 
+                2, debug.traceback())
+        end
+    end
+    -- give the list the metatable of ArrayList
+    setmetatable(list, ArrayList)
+    -- update length variable
+    if arrayList._FAIL_FAST then
+        if not list.__length then
+            if typeGiven == "table" then
+                for k, v in pairs(list) do
+                    -- check for indexes below 1 or
+                    -- holes in provided list
+                    if k < 1 then
+                        error("Indexes below 1 in supplied list" ..
+                            "please provide .__length field" ..
+                            "in supplied lists with indexes below 1",
+                            2, debug.traceback())
+                    end
+                    if (v == nil) and (k[v+1] ~= nil) then
+                        error("Hole present in supplied list" ..
+                            "please provide .__length field" ..
+                            "in supplied lists with holes",
+                            2, debug.traceback())
+                    end
+                end
+            end
+        end
+    end
+    -- set list length by provided or length of list
+    list.__length = list.__length or #list
+    list.__start=1
+    return list
+end
 
 -- self is implicitly the first value passed to
 -- these functions due to the use of : instead of 
@@ -39,8 +109,18 @@ end
 -- may return null
 -- completely analagous to calling table[index]
 -- on the list table itself
+-- FAIL_FAST will throw error in trying to get index outside
+-- list length
 function ArrayList:get(index)
-	return self[index]
+    if arrayList._FAIL_FAST then
+        if index > self.__start + self.__length - 1 then
+            error("Attempt to get index " .. index ..
+                " of greater value than list length" ..
+                (self.__start + self.__length - 1),
+                2, debug.traceback())
+        end
+    end
+    return self[index]
 end
 
 -- removes last entry of the list
@@ -48,6 +128,11 @@ function ArrayList:delete()
     if self.__length > 0 then
         self[__start+self.__length-1] = nil
         self.__length = self.__length - 1
+    else
+        if arrayList._FAIL_FAST then
+            error("Attempt to delete last entry of empty list",
+                2, debug.traceback())
+        end
     end
 end
 
@@ -74,7 +159,7 @@ end
 
 -- wipes the array list
 function ArrayList:clear()
-    self = {__start=1,__length=0}
+    self = { __start = 1, __length = 0 }
 end
 
 -- alias
@@ -109,7 +194,10 @@ function ArrayList:insert(key, value)
        self[key] = value
        return
     end
-    -- failed, maybe this should be an error
+    if arrayList._FAIL_FAST then
+        error("Failed to insert into list",
+            2, debug.traceback())
+    end
 end
 
 -- alias
@@ -119,7 +207,7 @@ ArrayList.set = ArrayList.insert
 -- nils to reach this position if it was not already within
 -- the list's range, and will always insert the element
 -- to the given position
--- TODO Currentely untested
+-- TODO untested
 function ArrayList:insertPad(key, value)
     self[key] = value
     if key < self.__start then
@@ -230,7 +318,7 @@ function ArrayList:asSet()
             setContains[self[k]] = true
             setLength = setLength + 1
             set[setLength] = self[k]
-	end
+        end
     end
     return arrayList.new(set)
 end
@@ -269,43 +357,6 @@ function ArrayList:__eq(list)
     end
     return false
 end
-
--- create a new array list, taking nothing, a string, number or table
--- returns the/a table backed by the ArrayList metatable
--- if a table is provided it currentely needs to have no holes and start
--- at one, or you need to manually set .__start and .__length appropriately
--- after calling this method
-function arrayList.new(list)
-    -- make the table if not provided
-    local list = list or {}
-    local typeGiven = type(list)
-	if typeGiven ~= "table" then
-            if (type(list) == "number") or (type(list) == "string") then
-                -- create a list with the first value as this
-                list = {list}
-            else
-		error("Attempt to create new array list from unsupported type", 2, debug.traceback())
-            end
-	end
-    -- give the list the metatable of ArrayList
-    setmetatable(list,ArrayList)
-    -- update length variable
-    -- TODO Make this safe for default tables with indexes below 1 or with holes in
-    list.__length = #list
-    list.__start=1
-    return list
-end
-
--- Returns the meta table used for providing all methods of a list.
--- modifying or adding to these methods will affect the behaviour
--- of all lists backed by this meta table, so know what you're doing
--- if you use this
-function arrayList.getClassMethods()
-	return ArrayList
-end
-
--- lets you simply use 'arrayList' to create a new arrayList instead
-arrayList.__call = arrayList.new
 
 -- TODO
 --[[

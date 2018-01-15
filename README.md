@@ -1,3 +1,5 @@
+This is the last version of the source code made available under the MIT license, and remains usable under the license, but will not be updated.
+
 # Lua-Collections
 
 A collecetion of basic lua data structures for Lua and LuaJIT

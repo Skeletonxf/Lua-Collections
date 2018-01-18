@@ -56,7 +56,7 @@ arrayList.__call = arrayList.new
 -- after calling this method, or FAIL_FAST behaviour will throw an error
 function arrayList.new(list)
     -- make the table if not provided
-    local list = list or {}
+    list = list or {}
     local typeGiven = type(list)
     if typeGiven ~= "table" then
         if (type(list) == "number") or (type(list) == "string") then

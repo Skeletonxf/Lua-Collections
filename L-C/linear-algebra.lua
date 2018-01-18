@@ -2,7 +2,7 @@
 local vectors = {
   _VERSION = "Linear Algebra Vectors and Matrices 0.1",
   _DESCRIPTION = "TODO",
-  _LICENSE = "MPL2 License"
+  _LICENSE = "MPL2"
 }
 
 -- metamethods
@@ -72,6 +72,8 @@ function matrix.new(values)
   return result
 end
 
+-- TODO Tweak to actually work with StructLists
+
 -- Vector/Matrix, Index -> Value/Vector at index
 -- by default acts as foo[bar] access
 -- but can be changed to support other representation datatypes
@@ -90,7 +92,7 @@ end
 -- all other code assumes this is a constant time operation Θ(1)
 -- if the representation datatype was non constant time assignment then all
 -- these runtimes will be wrong
-function VectorOrMatrix.assignment(vectorOrMatrix, i, v)
+function VectorOrMatrix.assign(vectorOrMatrix, i, v)
     vectorOrMatrix[i] = v
 end
 
@@ -309,23 +311,23 @@ function VectorOrMatrix.set(matrix, r, c, value)
   if matrix:isMatrix() then
     if matrix._la.direction == COLUMN then
       -- newly created matrices are row vectors of column vectors
-      matrix:access(r):assignment(c, value)
+      matrix:access(r):assign(c, value)
     else
       -- rotated ones are implicitly inversed
-      matrix:access(c):assignment(r, value)
+      matrix:access(c):assign(r, value)
     end
   else
     local vector = matrix
     if vector._la.direction == COLUMN then
       if r == 1 then
-        vector:assignment(c, value)
+        vector:assign(c, value)
       else
         error("Row index " .. r .. " out of range in vector "
           .. tostring(vector), 2, debug.traceback())
       end
     else
       if c == 1 then
-        vector:assignment(r, value)
+        vector:assign(r, value)
       else
         error("Column index " .. c .. " out of range in vector "
           .. tostring(vector), 2, debug.traceback())
@@ -380,7 +382,7 @@ function VectorOrMatrix.__mul(matrix1, matrix2)
     -- result is a matrix
     -- of column vectors
     for i = 1, rows do
-      result:assignment(i, vector.new({}))
+      result:assign(i, vector.new({}))
       result:access(i)._la.count = columns
     end
     result._la.count = rows

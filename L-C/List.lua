@@ -144,9 +144,12 @@ function List.__ipairs(list)
   return List._iterator, list, list:start() - 1
 end
 
--- List, Value -> List with value added to end
-function List.add(list, value)
-  list:expand():assign(list:length(), value)
+-- alias
+List.iterate = List.__ipairs
+
+-- List, Element -> List with element added to end
+function List.add(list, element)
+  list:expand():assign(list:length(), element)
   return list
 end
 
@@ -157,11 +160,11 @@ function List.get(list, index)
   return list:access(index)
 end
 
--- List, Index, Value -> List with value at index
+-- List, Index, Element -> List with element at index
 -- throws error on index out of bounds
-function List.set(list, index, value)
+function List.set(list, index, element)
   assertIndexInBounds(list, index)
-  return list:assign(index, value)
+  return list:assign(index, element)
 end
 
 -- List -> List, Element at last index now removed
@@ -188,22 +191,171 @@ function List.insert(list, index, element)
   return list
 end
 
--- List, Index -> List, Value in list removed
--- shifts elements left by 1 to remove value at this index
+-- List, Index -> List, Element in list removed
+-- shifts elements left by 1 to remove element at this index
 -- throws error on index out of bounds
 function List.remove(list, index)
   assertIndexInBounds(list, index)
-  local value = list:access(index)
+  local e = list:access(index)
   -- shift subsequent elements of this index left by 1
   for i = index, list:finish() - 1 do
     list.assign(i, list:access(i + 1))
   end
   list:shrink()
-  return list, value
+  return list, e
 end
 
--- TODO implement contains, clear, equals, addAll, removeAll, mapping functions, toString
+-- List, Element -> Boolean, Index
+-- returns true and the index of the first occurance
+-- of the element in this list if it is in the list
+-- and returns false and nil otherwise
+function List.contains(list, element)
+  for k, v in ipairs(list) do
+    if v == element then
+      return true, k
+    end
+  end
+  return false, nil
+end
+
+-- List, Element -> List, Element in list removed (if any)
+-- removes first occurance (if any) of the element
+-- does nothing to the List if the element does not exist
+function List.delete(list, element)
+  local has, k = list:contains(element)
+  if has then
+    local e = list:access(k)
+    list:remove(k)
+    return List, e
+  end
+  return List, nil
+end
+
+-- List -> empty List
+function List.clear(list)
+  list:setLength(0)
+  return list
+end
+
+-- List, List -> Boolean
+-- checks elementwise for every element pair
+-- being equal in the two lists
+function List.__eq(list1, list2)
+  if list1:length() ~= list2:length() then
+    return false  
+  end
+  for i = list1:start(), list1:finish() do
+    if list1:access(i) ~= list2:access(i) then
+      return false
+    end
+  end
+  return true
+end
+
+-- alias
+List.equals = List.__eq
+
+-- List, Consumer function -> List after function called
+--   on every element in order
+--
+-- ie if the List has elements { 1, 2, 3 }
+-- and the consumer function is
+-- function(v, k) print(v) end
+-- then list:forEach(consumer) prints
+-- 1
+-- 2
+-- 3
+function List.forEach(list, consumer)
+  for k, v in ipairs(list) do
+    consumer(v, k)
+  end
+end
+
+-- List, Mapping function -> List where every element is
+--   mapped by the function
+--
+-- ie if the List has elements { 1, 2, 3 }
+-- and the mapping function is
+-- function(v, k) return 2*v end
+-- then list:map(mapping) gives elements { 2, 4, 6 }
+function List.map(list, mapping)
+  for k, v in ipairs(list) do
+    list:assign(k, mapping(v, k))
+  end
+end
+
+-- List, table of Values -> List with Elements added
+--
+-- takes a table of values such that iterating over them
+-- with ipairs loops over each value in the table, returning
+-- true if the List contains an occurance of every value
+-- ie { "foo", "bar" } is valid
+-- { ["0"] = "baz" } is not (ipairs starts at 1)
+-- { ["foo"] = "bar" } is not
+--
+-- A List is also a valid table of values and so is
+-- any table with a metatable that defines __ipairs
+-- to correctly iterate over it
+function List.addAll(list, elements)
+  for _, v in ipairs(elements) do
+    list:add(v)
+  end
+  return list
+end
+
+-- List, table of Values -> Boolean
+--
+-- takes a table of values such that iterating over them
+-- with ipairs loops over each value in the table, returning
+-- true if the List contains an occurance of every value
+-- ie { "foo", "bar" } is valid
+-- { ["0"] = "baz" } is not (ipairs starts at 1)
+-- { ["foo"] = "bar" } is not
+--
+-- A List is also a valid table of values and so is
+-- any table with a metatable that defines __ipairs
+-- to correctly iterate over it
+--
+-- If the List has values { 1, 0, 1 }
+-- then containsAll(list, { 1, 1, 1}) will pass
+-- because the first occurance of 1 in the list
+-- will pass each value to check
+function List.containsAll(list, values)
+  for _, v in ipairs(values) do
+    if not list:contains(v) then
+      return false
+    end
+  end
+  return true
+end
+
+-- List, table of Values -> List with Elements removed (if any)
+--
+-- takes a table of values such that iterating over them
+-- with ipairs loops over each value in the table, returning
+-- true if the List contains an occurance of every value
+-- ie { "foo", "bar" } is valid
+-- { ["0"] = "baz" } is not (ipairs starts at 1)
+-- { ["foo"] = "bar" } is not
+--
+-- A List is also a valid table of values and so is
+-- any table with a metatable that defines __ipairs
+-- to correctly iterate over it
+--
+-- If the List has values { 1, 1, 1 }
+-- then list:deleteAll({ 1, 0, 1}) will remove the
+-- first two elements only
+function List.deleteAll(list, values)
+  for _, v in ipairs(values) do
+    list:remove(v)
+  end
+  return list
+end
+
+
+-- TODO implement toString, indexOf, retainAll, subList, copy
 -- replace arrayList with this
 -- implement interface in Struct.lua for struct lists as started in structList.lua
+-- will need to handle length changes in Struct.lua as Java's ArrayList does
 
 return list

@@ -1,3 +1,5 @@
+local array = require("Array")
+
 local list = {
   _VERSION = "List 0.1",
   _DESCRIPTION = [[
@@ -21,7 +23,7 @@ list.__call = list.new
 -- A valid representation type has the following
 -- method signatures in its metatable
 --
--- access :: Type, Index -> Element at index
+-- access :: Type, Index -> Value at index
 -- assign :: Type, Index, Value -> assigns value to index
 -- start :: Type -> starting index
 -- length :: Type -> number of elements in type
@@ -35,7 +37,7 @@ list.__call = list.new
 -- ``list.new(array.new({1,2,3}))``
 function list.new(representation)
   local providedMethods = {
-    "access", "assign", "start", "length", "setLength"
+    "access", "assign", "start", "length", "setLength", "copy"
   }
   for k, v in pairs(getmetatable(representation)) do
     if providedMethods[k] and type(v) == "function" then
@@ -70,6 +72,9 @@ function List.length(list)
 end
 function List.setLength(list, length)
   return list.data:setLength(length)  
+end
+function List.copy(list)
+  return list.data:copy()
 end
 
 -- assertion function to throw error on out of bound indexes
@@ -147,28 +152,45 @@ end
 -- alias
 List.iterate = List.__ipairs
 
--- List, Element -> List with element added to end
-function List.add(list, element)
-  list:expand():assign(list:length(), element)
+-- iterator to traverse a List backwards, 
+-- handling nil values because a List knows 
+-- at what index it starts
+function List._iteratorReverse(list, i)
+  i = i - 1
+  if list:indexInBounds(i) then
+    return i, List:access(i)
+  end
+  return nil
+end
+
+-- iterates over this list from finish to start
+-- passing over nil values that are still in the list
+function List.iterateBackwards(list)
+  return List._iteratorReverse, list, list:finish() + 1
+end
+
+-- List, Value -> List with value added to end
+function List.add(list, value)
+  list:expand():assign(list:length(), value)
   return list
 end
 
--- List, Index -> Element at index
+-- List, Index -> Value at index
 -- throws error on index out of bounds
 function List.get(list, index)
   assertIndexInBounds(list, index)
   return list:access(index)
 end
 
--- List, Index, Element -> List with element at index
+-- List, Index, Value -> List with value at index
 -- throws error on index out of bounds
-function List.set(list, index, element)
+function List.set(list, index, value)
   assertIndexInBounds(list, index)
-  return list:assign(index, element)
+  return list:assign(index, value)
 end
 
--- List -> List, Element at last index now removed
--- The element at last index is returned and 'removed' from datastructure
+-- List -> List, Value at last index now removed
+-- The value at last index is returned and 'removed' from datastructure
 -- The element could still be present in memory but is no longer in the List bounds
 function List.pop(list)
   assertListNonEmpty(list)
@@ -177,56 +199,56 @@ function List.pop(list)
   return list, v
 end
 
--- List, Index, Element -> List with element inserted into index
+-- List, Index, Value -> List with element inserted into index
 -- shifts elements right by 1 to make room
 -- throws error on index out of bounds
-function List.insert(list, index, element)
+function List.insert(list, index, value)
   list:expand()
   assertIndexInBounds(list, index)
   -- shift subsequent elements of this index right by 1
   for i = list:finish() - 1, index, -1 do
     list.assign(i + 1, list:access(i))
   end
-  list.assign(index, element)
+  list.assign(index, value)
   return list
 end
 
--- List, Index -> List, Element in list removed
--- shifts elements left by 1 to remove element at this index
+-- List, Index -> List, Value in list removed
+-- shifts elements left by 1 to remove value at this index
 -- throws error on index out of bounds
 function List.remove(list, index)
   assertIndexInBounds(list, index)
-  local e = list:access(index)
+  local v= list:access(index)
   -- shift subsequent elements of this index left by 1
   for i = index, list:finish() - 1 do
     list.assign(i, list:access(i + 1))
   end
   list:shrink()
-  return list, e
+  return list, v
 end
 
--- List, Element -> Boolean, Index
+-- List, Value -> Boolean, Index
 -- returns true and the index of the first occurance
 -- of the element in this list if it is in the list
 -- and returns false and nil otherwise
-function List.contains(list, element)
+function List.contains(list, value)
   for k, v in ipairs(list) do
-    if v == element then
+    if v == value then
       return true, k
     end
   end
   return false, nil
 end
 
--- List, Element -> List, Element in list removed (if any)
--- removes first occurance (if any) of the element
+-- List, Value -> List, Value in list removed (if any)
+-- removes first occurance (if any) of the value
 -- does nothing to the List if the element does not exist
-function List.delete(list, element)
-  local has, k = list:contains(element)
+function List.delete(list, value)
+  local has, k = list:contains(value)
   if has then
-    local e = list:access(k)
+    local v = list:access(k)
     list:remove(k)
-    return List, e
+    return List, v
   end
   return List, nil
 end
@@ -284,7 +306,7 @@ function List.map(list, mapping)
   end
 end
 
--- List, table of Values -> List with Elements added
+-- List, table of Values -> List with Values added
 --
 -- takes a table of values such that iterating over them
 -- with ipairs loops over each value in the table, returning
@@ -296,8 +318,8 @@ end
 -- A List is also a valid table of values and so is
 -- any table with a metatable that defines __ipairs
 -- to correctly iterate over it
-function List.addAll(list, elements)
-  for _, v in ipairs(elements) do
+function List.addAll(list, values)
+  for _, v in ipairs(values) do
     list:add(v)
   end
   return list
@@ -329,7 +351,7 @@ function List.containsAll(list, values)
   return true
 end
 
--- List, table of Values -> List with Elements removed (if any)
+-- List, table of Values -> List with Values removed (if any)
 --
 -- takes a table of values such that iterating over them
 -- with ipairs loops over each value in the table, returning
@@ -352,8 +374,54 @@ function List.deleteAll(list, values)
   return list
 end
 
+-- List, Value -> Index of first occurance of value
+--   in List if any, nil if not there
+function List.indexOf(list, value)
+  local has, k = list:contains(value)
+  if has then
+    return k
+  end
+  return nil
+end
 
--- TODO implement toString, indexOf, retainAll, subList, copy
+-- List, table of Values -> List with only elements equal
+--   to the table of values
+--
+-- takes a table of values such that iterating over them
+-- with ipairs loops over each value in the table, returning
+-- true if the List contains an occurance of every value
+-- ie { "foo", "bar" } is valid
+-- { ["0"] = "baz" } is not (ipairs starts at 1)
+-- { ["foo"] = "bar" } is not
+--
+-- A List is also a valid table of values and so is
+-- any table with a metatable that defines __ipairs
+-- to correctly iterate over it
+--
+-- If the list has values { 1, 1, 0 } then
+-- list:retainAll({0}) will remove every occurance of 0
+-- this is different to the other All methods that
+-- only remove first occurances because this method does
+-- a full pass through the list to identify what to retain
+-- before calling list:remove iterating backwards through
+-- the entire list
+function List.retainAll(list, values)
+  local deleteIndices = list.new(array.new())
+  for k, v in ipairs(list) do
+    if not List.contains(values, v) then
+      -- this element needs to be removed
+      deleteIndices:add(k)
+    end
+  end
+  -- must iterate backwards so that indices
+  -- remain correct as removing
+  for _, index in deleteIndices:iterateBackwards() do
+    list:remove(index)
+  end
+  return list
+end
+
+-- TODO implement toString, subList
 -- replace arrayList with this
 -- implement interface in Struct.lua for struct lists as started in structList.lua
 -- will need to handle length changes in Struct.lua as Java's ArrayList does

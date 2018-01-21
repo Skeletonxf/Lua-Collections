@@ -3,20 +3,46 @@ local array = require "Array"
 local list = {
   _VERSION = "List 0.1",
   _DESCRIPTION = [[
-    HIGHLY WIP
     A List is composed of a representation table
     which implements methods to access and retrieve data
     from it. Therefore you can create Lists from
     different underlying structures such as a plain Lua table
     or LuaJit's C structs and reuse the same higher level code
+
+    This class defines what a List is, using any
+    representation type that supports the needed methods
+
+    This class also monkey patches Lua 5.1's ipairs global
+    method on file load to call __ipairs on tables that define it
+    as Lua 5.2+ behaves by default. Without this many iterative
+    methods in this file will break in Lua 5.1
   ]],
-  _LICENSE = "MPL2"
+  _LICENSE = "MPL2",
+  _AUTHOR = "Skeletonxf",
+  _URL = "https://github.com/Skeletonxf/Lua-Collections"
 }
 
 local List = {}
 List.__index = List
 list.class = function() return List end
 list.__call = list.new
+
+-- Lua 5.2+ ipairs correctly calls the __ipairs metamethod on a table
+-- Lua 5.1, also the LuaJit version, needs to be 'taught' this
+if _VERSION == "Lua 5.1" then
+  local ipairsOld = ipairs
+  ipairs = function(table)
+    -- calls the table's __ipairs if it
+    -- exists, and falls back to the global
+    -- ipairs function if not
+    if table.__ipairs then
+      return table:__ipairs()
+    else
+      -- default to normal behaviour
+      return ipairsOld(table)
+    end
+  end
+end
 
 -- RepresentationType -> List of that type
 --
@@ -39,10 +65,9 @@ function list.new(representation)
   local providedMethods = {
     "access", "assign", "start", "length", "setLength", "copy"
   }
-  local mt = getmetatable(representation)
   for k = #providedMethods, 1, -1 do
     local v = providedMethods[k]
-    if mt[v] and type(mt[v]) == "function" then
+    if representation[v] and type(representation[v]) == "function" then
       providedMethods[k] = nil
     end
   end
@@ -437,7 +462,6 @@ function List.__tostring(list)
   return s:sub(1, -2) .. "]"
 end
 
--- FIXME swap all ipairs for Lua 5.1 compatible version
 -- TODO implement subListing
 -- replace arrayList with this
 -- implement interface in Struct.lua for struct lists as started in structList.lua

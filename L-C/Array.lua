@@ -1,7 +1,20 @@
 local array = {
   _VERSION = "Array 0.1",
-  _DESCRIPTION = "HIGHLY WIP. Thin wrapper around lua table",
-  _LICENSE = "MPL2"
+  _DESCRIPTION = [[
+    Thin wrapper around a lua table providing
+    methods to manipulate numerical indices
+
+    This class is intended for use as the main data
+    representation of a List
+
+    Create an blank ArrayList:
+    local arrayList = list.new(array.new())
+    Create a pre initialised ArrayList:
+    local arrayList = list.new(array.new({1,2,3,4}))
+  ]],
+  _LICENSE = "MPL2",
+  _AUTHOR = "Skeletonxf",
+  _URL="https://github.com/Skeletonxf/Lua-Collections"
 }
 
 local Array = {}

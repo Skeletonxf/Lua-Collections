@@ -1,4 +1,4 @@
-local array = require("Array")
+local array = require "Array"
 
 local list = {
   _VERSION = "List 0.1",
@@ -39,19 +39,21 @@ function list.new(representation)
   local providedMethods = {
     "access", "assign", "start", "length", "setLength", "copy"
   }
-  for k, v in pairs(getmetatable(representation)) do
-    if providedMethods[k] and type(v) == "function" then
+  local mt = getmetatable(representation)
+  for k = #providedMethods, 1, -1 do
+    local v = providedMethods[k]
+    if mt[v] and type(mt[v]) == "function" then
       providedMethods[k] = nil
     end
   end
-  if #providedMethods == 0 then
+  if #providedMethods ~= 0 then
     error("Representaion type " .. tostring(representation)
-      .. " does not implement needed methods ", 2, debug.traceback())
+      .. " does not implement all needed methods ", 2, debug.traceback())
   end
   local list = {
     data = representation
   }
-  setmetatable(list)
+  setmetatable(list, List)
   return list
 end
 
@@ -80,8 +82,8 @@ end
 -- assertion function to throw error on out of bound indexes
 local function assertIndexInBounds(list, i)
   if list:indexOutOfBounds() then
-    error("List index " .. tostring(index) ..  " out of bounds"
-      , 3, debug.traceback())
+    error("List index " .. tostring(index) ..  " out of bounds",
+      3, debug.traceback())
   end
 end
 
@@ -106,13 +108,13 @@ function List.shrink(list)
 end
 
 -- List -> last element index
-function list.finish(list)
+function List.finish(list)
   return list.data:start() + list.data:length() - 1
 end
 
 -- List -> if list is empty
 function List.isEmpty(list)
-  return list:length() > 0
+  return list:length() == 0
 end
 
 -- List, Index -> true if index is in the range of the list
@@ -131,11 +133,12 @@ end
 function List._iterator(list, i)
   i = i + 1
   if list:indexInBounds(i) then
-    return i, List:access(i)
+    return i, list:access(i)
   end
   return nil
 end
 
+-- Lua 5.2+ only
 -- iterates over this list from start to finish
 -- passing over nil values that are still in the list
 -- this is different to how plain lua tables are
@@ -150,6 +153,7 @@ function List.__ipairs(list)
 end
 
 -- alias
+-- using list:iterate() will work in Lua 5.1
 List.iterate = List.__ipairs
 
 -- iterator to traverse a List backwards, 
@@ -421,7 +425,20 @@ function List.retainAll(list, values)
   return list
 end
 
--- TODO implement toString, subList
+-- List -> String representation
+function List.__tostring(list)
+  if list:isEmpty() then
+    return "[]"
+  end
+  local s = "["
+  for k, v in ipairs(list) do
+    s = s .. v .. ","
+  end
+  return s:sub(1, -2) .. "]"
+end
+
+-- FIXME swap all ipairs for Lua 5.1 compatible version
+-- TODO implement subListing
 -- replace arrayList with this
 -- implement interface in Struct.lua for struct lists as started in structList.lua
 -- will need to handle length changes in Struct.lua as Java's ArrayList does

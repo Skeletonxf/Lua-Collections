@@ -98,7 +98,7 @@ function List.length(list)
   return list.data:length()
 end
 function List.setLength(list, length)
-  return list.data:setLength(length)  
+  return list.data:setLength(length)
 end
 function List.copy(list)
   return list.data:copy()

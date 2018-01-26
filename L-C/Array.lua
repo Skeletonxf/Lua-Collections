@@ -58,6 +58,7 @@ end
 -- the new value for this array
 function Array.setLength(array, length)
   array._length = length
+  return array
 end
 
 -- Array -> copy of Array, under a new table

@@ -6,6 +6,9 @@
 -- and also the 'static/class methods' held in the wrapper
 -- table are not inherited and are called
 -- without the use of a : because they have no state
+-- This is roughly the style used in Lua Collections
+-- and is not documentated there because it would be
+-- repeated over every single file
 local methods = {}
 
 -- lua will now look at `methods` when looking for

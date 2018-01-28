@@ -96,7 +96,7 @@ function List.access(list, i)
   return list.data:access(i)
 end
 function List.assign(list, i, v)
-  list.data:assign(i, v)
+  list.data = list.data:assign(i, v)
   return list
 end
 function List.start(list)
@@ -106,15 +106,17 @@ function List.length(list)
   return list.data:length()
 end
 function List.setLength(list, length)
-  return list.data:setLength(length)
+  list.data = list.data:setLength(length)
+  return list
 end
 function List.copy(list)
-  return list.data:copy()
+  return list.new(list.data:copy())
 end
 
 -- assertion function to throw error on out of bound indexes
+-- !!NODOC
 local function assertIndexInBounds(list, i)
-  if list:indexOutOfBounds() then
+  if list:indexOutOfBounds(i) then
     error("List index " .. tostring(index) ..  " out of bounds",
       3, debug.traceback())
   end
@@ -122,6 +124,7 @@ end
 
 -- assertion function to throw error on empty lists
 -- for functions where list must be non empty
+-- !!NODOC
 local function assertListNonEmpty(list)
   if list:isEmpty() then
     error("Empty list", 3, debug.traceback())
@@ -130,14 +133,12 @@ end
 
 -- List -> List one element longer
 function List.expand(list)
-  list:setLength(list:length() + 1)
-  return list
+  return list:setLength(list:length() + 1)
 end
 
 -- List -> List one element shorter
 function List.shrink(list)
-  list:setLength(list:length() - 1)
-  return list
+  return list:setLength(list:length() - 1)
 end
 
 -- List -> last element index
@@ -177,9 +178,9 @@ end
 -- this is different to how plain lua tables are
 -- traversed as they do not know when they end
 -- so that
--- for k, v in ipairs(list) do
+-- `for k, v in ipairs(list) do
 --   ...
--- end
+-- end`
 -- just works even with holes in the data
 function List.__ipairs(list)
   return List._iterator, list, list:start() - 1
@@ -187,6 +188,7 @@ end
 
 -- alias
 -- using list:iterate() will work in Lua 5.1
+-- !!NODOC
 List.iterate = List.__ipairs
 
 -- iterator to traverse a List backwards,
@@ -208,8 +210,7 @@ end
 
 -- List, Value -> List with value added to end
 function List.add(list, value)
-  list:expand():assign(list:length(), value)
-  return list
+  return list:expand():assign(list:finish(), value)
 end
 
 -- List, Index -> Value at index
@@ -232,15 +233,14 @@ end
 function List.pop(list)
   assertListNonEmpty(list)
   local v = list:access(list:finish())
-  list:shrink()
-  return list, v
+  return list:shrink(), v
 end
 
 -- List, Index, Value -> List with element inserted into index
 -- shifts elements right by 1 to make room
 -- throws error on index out of bounds
 function List.insert(list, index, value)
-  list:expand()
+  list = list:expand()
   assertIndexInBounds(list, index)
   -- shift subsequent elements of this index right by 1
   for i = list:finish() - 1, index, -1 do
@@ -260,8 +260,7 @@ function List.remove(list, index)
   for i = index, list:finish() - 1 do
     list.assign(i, list:access(i + 1))
   end
-  list:shrink()
-  return list, v
+  return list:shrink(), v
 end
 
 -- List, Value -> Boolean, Index
@@ -353,7 +352,7 @@ end
 -- { ["foo"] = "bar" } is not
 --
 -- A List is also a valid table of values and so is
--- any table with a metatable that defines __ipairs
+-- any table with a metatable that defines `__ipairs`
 -- to correctly iterate over it
 function List.addAll(list, values)
   for _, v in ipairs(values) do
@@ -368,11 +367,11 @@ end
 -- with ipairs loops over each value in the table, returning
 -- true if the List contains an occurance of every value
 -- ie { "foo", "bar" } is valid
--- { ["0"] = "baz" } is not (ipairs starts at 1)
+-- { ["0"] = "baz" } is not (default ipairs starts at 1)
 -- { ["foo"] = "bar" } is not
 --
 -- A List is also a valid table of values and so is
--- any table with a metatable that defines __ipairs
+-- any table with a metatable that defines `__ipairs`
 -- to correctly iterate over it
 --
 -- If the List has values { 1, 0, 1 }
@@ -394,11 +393,11 @@ end
 -- with ipairs loops over each value in the table, returning
 -- true if the List contains an occurance of every value
 -- ie { "foo", "bar" } is valid
--- { ["0"] = "baz" } is not (ipairs starts at 1)
+-- { ["0"] = "baz" } is not (default ipairs starts at 1)
 -- { ["foo"] = "bar" } is not
 --
 -- A List is also a valid table of values and so is
--- any table with a metatable that defines __ipairs
+-- any table with a metatable that defines `__ipairs`
 -- to correctly iterate over it
 --
 -- If the List has values { 1, 1, 1 }
@@ -428,11 +427,11 @@ end
 -- with ipairs loops over each value in the table, returning
 -- true if the List contains an occurance of every value
 -- ie { "foo", "bar" } is valid
--- { ["0"] = "baz" } is not (ipairs starts at 1)
+-- { ["0"] = "baz" } is not (default ipairs starts at 1)
 -- { ["foo"] = "bar" } is not
 --
 -- A List is also a valid table of values and so is
--- any table with a metatable that defines __ipairs
+-- any table with a metatable that defines `__ipairs`
 -- to correctly iterate over it
 --
 -- If the list has values { 1, 1, 0 } then
@@ -465,7 +464,7 @@ function List.__tostring(list)
   end
   local s = "["
   for k, v in ipairs(list) do
-    s = s .. v .. ","
+    s = s .. tostring(v) .. ","
   end
   return s:sub(1, -2) .. "]"
 end

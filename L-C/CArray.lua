@@ -111,7 +111,7 @@ function cArray.new(typeRef, length)
   if constructorReferences[typeRef] then
     return new(constructorReferences[typeRef], typeRef, length)
   else
-    error("Invalid c datatype '" .. typeRef ..
+    error("Invalid c datatype '" .. tostring(typeRef) ..
       "'\nregister new types with cArray.newCType",
       2, debug.traceback())
   end
@@ -122,7 +122,7 @@ function CArray.access(struct, i)
   if i >= 0 and i < struct:length() then
     return struct.data[i]
   else
-    error("C Array index " .. tostring(i) .. "out of bounds",
+    error("C Array index " .. tostring(i) .. " out of bounds",
       2, debug.traceback())
   end
 end
@@ -132,9 +132,10 @@ function CArray.assign(struct, i, v)
   if i >= 0 and i < struct:length() then
     struct.data[i] = v
   else
-    error("C Array index " .. tostring(i) .. "out of bounds",
+    error("C Array index " .. tostring(i) .. " out of bounds",
       2, debug.traceback())
   end
+  return struct
 end
 
 -- CArray -> first element index
@@ -149,19 +150,25 @@ function CArray.length(struct)
 end
 
 -- CArray, Length -> CArray of this length
+--
+-- Old CArray is assumed to be ready for gc if resized
+--
+-- If you want to keep the old length CArray you must copy
+-- first
 function CArray.setLength(struct, length)
   if length < struct.max and length >= 0 then
     struct.current = length
   else
     -- resize by creating new larger array
-    local newStruct = cArray.new(CArray[struct], struct.max*2)
+    local typeRef = CArray[struct]
+    -- delete reference to this struct's string reference to
+    -- its type in the metatable so it can be garbage collected
+    CArray[struct] = nil
+    local newStruct = cArray.new(typeRef, struct.max*2)
     for i = 0, struct:length() - 1 do
       newStruct:assign(i, struct:access(i))
     end
     newStruct.current = length
-    -- delete reference to this struct's string reference to
-    -- its type in the metatable so it can be garbage collected
-    CArray[struct] = nil
     -- overwrite the old struct with the new one
     -- !!NODOC TODO Fix DocumentationBuilder, shouldn't need flag here
     struct = newStruct

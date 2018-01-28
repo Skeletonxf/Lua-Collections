@@ -56,6 +56,11 @@ this is bounded by the maximum size of the array
 ## `function CArray.setLength(struct, length)`
 CArray, Length -> CArray of this length
 
+Old CArray is assumed to be ready for gc if resized
+
+If you want to keep the old length CArray you must copy
+first
+
 ## `function CArray.copy(struct)`
 CArray -> copy of this CArray
 

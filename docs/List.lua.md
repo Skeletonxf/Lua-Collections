@@ -39,22 +39,6 @@ For example, to create an array list
 `list.new(array.new({1,2,3}))`
 
 ## `function List.expand(list)`
-assertion function to throw error on out of bound indexes
-local function assertIndexInBounds(list, i)
-if list:indexOutOfBounds() then
-error("List index " .. tostring(index) ..  " out of bounds",
-3, debug.traceback())
-end
-end
-
-assertion function to throw error on empty lists
-for functions where list must be non empty
-local function assertListNonEmpty(list)
-if list:isEmpty() then
-error("Empty list", 3, debug.traceback())
-end
-end
-
 List -> List one element longer
 
 ## `function List.shrink(list)`
@@ -83,16 +67,12 @@ passing over nil values that are still in the list
 this is different to how plain lua tables are
 traversed as they do not know when they end
 so that
-for k, v in ipairs(list) do
+`for k, v in ipairs(list) do
 ...
-end
+end`
 just works even with holes in the data
 
 ## `function List._iteratorReverse(list, i)`
-alias
-using list:iterate() will work in Lua 5.1
-List.iterate = List.__ipairs
-
 iterator to traverse a List backwards,
 handling nil values because a List knows
 at what index it starts
@@ -172,7 +152,7 @@ ie { "foo", "bar" } is valid
 { ["foo"] = "bar" } is not
 
 A List is also a valid table of values and so is
-any table with a metatable that defines __ipairs
+any table with a metatable that defines `__ipairs`
 to correctly iterate over it
 
 ## `function List.containsAll(list, values)`
@@ -182,11 +162,11 @@ takes a table of values such that iterating over them
 with ipairs loops over each value in the table, returning
 true if the List contains an occurance of every value
 ie { "foo", "bar" } is valid
-{ ["0"] = "baz" } is not (ipairs starts at 1)
+{ ["0"] = "baz" } is not (default ipairs starts at 1)
 { ["foo"] = "bar" } is not
 
 A List is also a valid table of values and so is
-any table with a metatable that defines __ipairs
+any table with a metatable that defines `__ipairs`
 to correctly iterate over it
 
 If the List has values { 1, 0, 1 }
@@ -201,11 +181,11 @@ takes a table of values such that iterating over them
 with ipairs loops over each value in the table, returning
 true if the List contains an occurance of every value
 ie { "foo", "bar" } is valid
-{ ["0"] = "baz" } is not (ipairs starts at 1)
+{ ["0"] = "baz" } is not (default ipairs starts at 1)
 { ["foo"] = "bar" } is not
 
 A List is also a valid table of values and so is
-any table with a metatable that defines __ipairs
+any table with a metatable that defines `__ipairs`
 to correctly iterate over it
 
 If the List has values { 1, 1, 1 }
@@ -224,11 +204,11 @@ takes a table of values such that iterating over them
 with ipairs loops over each value in the table, returning
 true if the List contains an occurance of every value
 ie { "foo", "bar" } is valid
-{ ["0"] = "baz" } is not (ipairs starts at 1)
+{ ["0"] = "baz" } is not (default ipairs starts at 1)
 { ["foo"] = "bar" } is not
 
 A List is also a valid table of values and so is
-any table with a metatable that defines __ipairs
+any table with a metatable that defines `__ipairs`
 to correctly iterate over it
 
 If the list has values { 1, 1, 0 } then

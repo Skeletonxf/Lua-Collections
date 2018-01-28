@@ -42,6 +42,7 @@ end
 -- Array, Index, Value -> Assigns value to index
 function Array.assign(array, i, v)
   array[i] = v
+  return array
 end
 
 -- Array -> first element index

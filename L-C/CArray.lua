@@ -2,7 +2,7 @@ local ffi = require "ffi"
 
 local cArray = {
   _VERSION = "CArray 0.1",
-  _DESCRIPTION =  [[
+  _DESCRIPTION = [[
     This class uses LuaJIT's FFI to use a C array
     inside a struct and thus will not run from pure lua
     This class is WIP but can be used to create a List
@@ -25,11 +25,13 @@ local cArray = {
     to access arrays out of bounds or to misdeclare C functions.
     If you make a mistake, your application might crash,
     just like equivalent C code would."
-    
-    Hence it is strongly advised to use this class 
+
+    Hence it is strongly advised to use this class
     only by its own methods - and be careful even then.
   ]],
-  _LICENSE = "MPL2"
+  _LICENSE = "MPL2",
+  _AUTHOR = "Skeletonxf",
+  _URL = "https://github.com/Skeletonxf/Lua-Collections"
 }
 
 local CArray = {}
@@ -40,15 +42,16 @@ CArray.__index = CArray
 cArray.class = function() return cArray end
 cArray.__call = cArray.new
 
--- table of lua strings referencing constructors 
+-- table of lua strings referencing constructors
 local constructorReferences = {}
 -- table with keys to constructors of the keyed type struct
 local constructors = {}
+-- !!NODOC
 
 -- String type reference, C Datatype -> Registers constructor for type
 --   so can use cArray.new(stringReference)
 --
--- adds a ctype type struct constructor to the list
+-- Adds a ctype type struct constructor to the list
 -- of constructors
 function cArray.newCType(stringTypeRef, ctype)
   -- variable length (?) paramaterised type ($) array inside a struct
@@ -68,6 +71,7 @@ end
 
 -- default provided referenced types
 -- external code can call this function to add other types if needed
+-- !!NODOC
 cArray.newCType("int", ffi.typeof("int"))
 cArray.newCType("double", ffi.typeof("double"))
 cArray.newCType("float", ffi.typeof("float"))
@@ -79,7 +83,7 @@ local function new(ctype, typeRef, length)
   --
   -- first paramater to constructor is variable number of elements
   -- ie size of array to create
-  -- the current length field in the struct at creation 
+  -- the current length field in the struct at creation
   -- will also be this, and the max field will be track
   -- what the maximum length of this array is, so is also
   -- the same value
@@ -95,8 +99,13 @@ local function new(ctype, typeRef, length)
   CArray[struct] = typeRef
   return struct
 end
+-- !!NODOC
 
 -- String reference to C Datatype, Length -> CArray
+--
+-- By default "int", "double", and "float" are already registered
+-- as types to create CArrays from. You can register
+-- new types by using cArray.newCType()
 function cArray.new(typeRef, length)
   -- check the ctype for this string reference exists
   if constructorReferences[typeRef] then
@@ -133,10 +142,10 @@ function CArray.start(struct)
   return 0
 end
 
--- CArray -> current length of this array 
+-- CArray -> current length of this array
 --   this is bounded by the maximum size of the array
 function CArray.length(struct)
-  return struct.current  
+  return struct.current
 end
 
 -- CArray, Length -> CArray of this length
@@ -154,11 +163,13 @@ function CArray.setLength(struct, length)
     -- its type in the metatable so it can be garbage collected
     CArray[struct] = nil
     -- overwrite the old struct with the new one
+    -- !!NODOC TODO Fix DocumentationBuilder, shouldn't need flag here
     struct = newStruct
   end
   return struct
 end
 
+-- CArray -> copy of this CArray
 function CArray.copy(struct)
   local newStruct = cArray.new(CArray[struct], struct.max)
   for i = 0, struct:length() - 1 do

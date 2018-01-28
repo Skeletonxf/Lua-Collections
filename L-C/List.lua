@@ -13,7 +13,7 @@ local list = {
     representation type that supports the needed methods
 
     This class also monkey patches Lua 5.1's ipairs global
-    method on file load to call __ipairs on tables that define it
+    method on file load to call `__ipairs` on tables that define it
     as Lua 5.2+ behaves by default. Without this many iterative
     methods in this file will break in Lua 5.1
   ]],
@@ -29,6 +29,7 @@ list.__call = list.new
 
 -- Lua 5.2+ ipairs correctly calls the __ipairs metamethod on a table
 -- Lua 5.1, also the LuaJit version, needs to be 'taught' this
+-- !!NODOC
 if _VERSION == "Lua 5.1" then
   local ipairsOld = ipairs
   ipairs = function(table)
@@ -39,6 +40,7 @@ if _VERSION == "Lua 5.1" then
       return table:__ipairs()
     else
       -- default to normal behaviour
+      -- !!NODOC TODO Fix DocumentationBuilder, shouldn't need flag here
       return ipairsOld(table)
     end
   end
@@ -50,17 +52,22 @@ end
 -- method signatures in its metatable
 --
 -- access :: Type, Index -> Value at index
+--
 -- assign :: Type, Index, Value -> assigns value to index
+--
 -- start :: Type -> starting index
+--
 -- length :: Type -> number of elements in type
+--
 -- setLength :: Type, new Length -> expands or shrinks the length
+--
 --   of the type, trivial for lua tables and not so trivial for structs
 --
 -- Construction only enforces that these functions exist
 -- but they must be behave as so for the code to run properly
 --
 -- For example, to create an array list
--- ``list.new(array.new({1,2,3}))``
+-- `list.new(array.new({1,2,3}))`
 function list.new(representation)
   local providedMethods = {
     "access", "assign", "start", "length", "setLength", "copy"
@@ -84,6 +91,7 @@ end
 
 -- Wrappers around the data type methods
 -- that always return the list after
+-- !!NODOC
 function List.access(list, i)
   return list.data:access(i)
 end
@@ -150,7 +158,7 @@ end
 
 -- List, Index -> complement of indexInBounds
 function List.indexOutOfBounds(list, i)
-  return not list:indexInBounds(i)  
+  return not list:indexInBounds(i)
 end
 
 -- iterator to traverse a List, handling nil values
@@ -181,8 +189,8 @@ end
 -- using list:iterate() will work in Lua 5.1
 List.iterate = List.__ipairs
 
--- iterator to traverse a List backwards, 
--- handling nil values because a List knows 
+-- iterator to traverse a List backwards,
+-- handling nil values because a List knows
 -- at what index it starts
 function List._iteratorReverse(list, i)
   i = i - 1
@@ -293,7 +301,7 @@ end
 -- being equal in the two lists
 function List.__eq(list1, list2)
   if list1:length() ~= list2:length() then
-    return false  
+    return false
   end
   for i = list1:start(), list1:finish() do
     if list1:access(i) ~= list2:access(i) then
@@ -303,7 +311,7 @@ function List.__eq(list1, list2)
   return true
 end
 
--- alias
+-- alias !!NODOC
 List.equals = List.__eq
 
 -- List, Consumer function -> List after function called
@@ -443,7 +451,7 @@ function List.retainAll(list, values)
     end
   end
   -- must iterate backwards so that indices
-  -- remain correct as removing
+  -- remain correct as removing !!NODOC
   for _, index in deleteIndices:iterateBackwards() do
     list:remove(index)
   end

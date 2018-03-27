@@ -255,10 +255,10 @@ end
 -- throws error on index out of bounds
 function List.remove(list, index)
   assertIndexInBounds(list, index)
-  local v= list:access(index)
+  local v = list:access(index)
   -- shift subsequent elements of this index left by 1
   for i = index, list:finish() - 1 do
-    list.assign(i, list:access(i + 1))
+    list:assign(i, list:access(i + 1))
   end
   return list:shrink(), v
 end

@@ -197,7 +197,7 @@ List.iterate = List.__ipairs
 function List._iteratorReverse(list, i)
   i = i - 1
   if list:indexInBounds(i) then
-    return i, List:access(i)
+    return i, list:access(i)
   end
   return nil
 end
